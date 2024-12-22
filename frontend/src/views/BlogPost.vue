@@ -33,60 +33,56 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="container mx-auto px-4 py-8">
-    <div v-if="loading" class="text-center text-xl text-gray-600">
-      加载中...
+  <div class="container animate-fade-in">
+    <div v-if="loading" class="flex justify-center items-center h-64">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
     </div>
     
-    <div v-else-if="error" class="text-center text-red-500">
+    <div v-else-if="error" class="text-center text-red-500 dark:text-red-400">
       {{ error }}
     </div>
     
-    <article v-else-if="post" class="prose lg:prose-xl max-w-2xl mx-auto">
-      <h1 class="text-3xl font-bold mb-4">{{ post.title }}</h1>
-      <div class="text-gray-600 mb-6 text-sm">
-        发布日期: {{ new Date(post.created_at).toLocaleString() }}
-      </div>
+    <article v-else-if="post" class="prose dark:prose-invert lg:prose-xl max-w-3xl mx-auto py-12">
+      <header class="mb-10 text-center">
+        <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
+          {{ post.title }}
+        </h1>
+        <div class="text-gray-600 dark:text-gray-300 text-sm">
+          发布日期: {{ new Date(post.created_at).toLocaleString() }}
+        </div>
+      </header>
       
       <div 
         class="blog-content" 
         v-html="post.content"
       ></div>
       
-      <div class="mt-8 border-t pt-4 text-center">
+      <div class="mt-12 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
         <router-link 
           to="/" 
-          class="text-blue-500 hover:text-blue-700"
+          class="btn btn-secondary"
         >
           返回首页
         </router-link>
       </div>
     </article>
     
-    <div v-else class="text-center text-gray-600">
+    <div v-else class="text-center text-gray-600 dark:text-gray-400 py-12">
       文章不存在
     </div>
   </div>
 </template>
 
 <style scoped>
-.container {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
 .blog-content {
-  line-height: 1.8;
+  @apply leading-relaxed;
 }
 
 .blog-content p {
-  margin-bottom: 1rem;
+  @apply mb-4;
 }
 
 .blog-content h2 {
-  font-size: 1.5rem;
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-  font-weight: bold;
+  @apply text-2xl font-semibold mt-6 mb-4 text-gray-900 dark:text-white;
 }
 </style>

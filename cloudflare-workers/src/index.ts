@@ -9,7 +9,13 @@ type Bindings = {
 const app = new Hono<{ Bindings: Bindings }>();
 
 // 跨域配置
-app.use('*', cors());
+app.use('*', cors({
+  origin: '*', // 生产环境请替换为具体的前端域名
+  allowHeaders: ['Content-Type', 'Authorization'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  exposeHeaders: ['Content-Length'],
+  maxAge: 600,
+}));
 
 // 初始化数据库
 app.get('/init', async (c) => {
@@ -39,12 +45,15 @@ app.get('/init', async (c) => {
 
 // 获取所有博客文章
 app.get('/api/posts', async (c) => {
-  const { DB } = c.env;
-  const { results } = await DB.prepare(
-    'SELECT id, title, summary, created_at FROM posts ORDER BY created_at DESC'
-  ).all();
-
-  return c.json(results);
+  try {
+    const { DB } = c.env;
+    const { results } = await DB.prepare(
+      'SELECT id, title, summary, created_at FROM posts ORDER BY created_at DESC'
+    ).all();
+    return c.json(results);
+  } catch (error) {
+    return c.json({ error: 'Failed to fetch posts' }, 500);
+  }
 });
 
 // 获取特定博客文章
@@ -52,15 +61,40 @@ app.get('/api/posts/:id', async (c) => {
   const { DB } = c.env;
   const id = c.req.param('id');
   
-  const { results } = await DB.prepare(
-    'SELECT * FROM posts WHERE id = ?'
-  ).bind(id).all();
-
-  if (results.length === 0) {
-    return c.json({ message: '文章未找到' }, 404);
+  try {
+    const { results } = await DB.prepare(
+      'SELECT * FROM posts WHERE id = ?'
+    ).bind(id).all();
+    
+    if (results.length === 0) {
+      return c.json({ error: 'Post not found' }, 404);
+    }
+    
+    return c.json(results[0]);
+  } catch (error) {
+    return c.json({ error: 'Failed to fetch post' }, 500);
   }
+});
 
-  return c.json(results[0]);
+// 创建博客文章（管理员使用）
+app.post('/api/posts', async (c) => {
+  try {
+    const { DB } = c.env;
+    const { title, content, summary } = await c.req.json();
+    
+    const { success } = await DB.prepare(
+      'INSERT INTO posts (title, content, summary, created_at) VALUES (?, ?, ?, ?)'
+    ).bind(
+      title, 
+      content, 
+      summary, 
+      new Date().toISOString()
+    ).run();
+    
+    return c.json({ success });
+  } catch (error) {
+    return c.json({ error: 'Failed to create post' }, 500);
+  }
 });
 
 // 上传博客文章

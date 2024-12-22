@@ -1,17 +1,16 @@
 {
-  "name": "personal-blog-cloudflare",
+  "name": "personal-blog-workers",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
-    "dev": "wrangler dev"
+    "start": "wrangler dev"
   },
   "dependencies": {
-    "hono": "^3.12.1"
+    "hono": "^3.12.8"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20231121.0",
-    "typescript": "^5.3.3",
-    "wrangler": "^3.22.1"
+    "@cloudflare/workers-types": "^4.20231218.0",
+    "wrangler": "^3.19.0"
   }
 }

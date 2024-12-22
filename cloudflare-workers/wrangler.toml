@@ -1,12 +1,19 @@
-name = "personal-blog"
+name = "personal-blog-workers"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
+[vars]
+BLOG_TITLE = "我的个人博客"
+
 [[d1_databases]]
-binding = "DB" # 绑定的变量名，在代码中使用
+binding = "DB" # 在代码中使用 env.DB 访问
 database_name = "personal-blog-db"
-database_id = "cb89ea0b-22d5-400c-991b-261b73de07cd" # 部署时需要替换
+database_id = "your-d1-database-id"
 
 [[r2_buckets]]
 binding = "BLOG_BUCKET"
 bucket_name = "personal-blog-bucket"
+
+[miniflare]
+# 本地开发配置
+kv_persist = true

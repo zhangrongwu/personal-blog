@@ -1,0 +1,8 @@
+-- 创建博客文章表
+CREATE TABLE IF NOT EXISTS posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    summary TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

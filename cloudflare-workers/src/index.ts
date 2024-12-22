@@ -10,7 +10,11 @@ const app = new Hono<{ Bindings: Bindings }>();
 
 // 跨域配置
 app.use('*', cors({
-  origin: '*', // 生产环境请替换为具体的前端域名
+  origin: [
+    'http://localhost:5173',  // 本地开发
+    'https://personal-blog-593.pages.dev',  // Pages 部署域名
+    'https://personal-blog-workers.your-account.workers.dev'  // Workers 域名
+  ],
   allowHeaders: ['Content-Type', 'Authorization'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   exposeHeaders: ['Content-Length'],

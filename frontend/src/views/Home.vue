@@ -13,7 +13,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const response = await fetch('https://personal-blog.your-workers-subdomain.workers.dev/api/posts')
+    const response = await fetch('https://personal-blog-workers.zhangrongwuios-c13.workers.dev/api/posts')
     posts.value = await response.json()
     loading.value = false
   } catch (error) {
@@ -27,6 +27,9 @@ onMounted(async () => {
   <div class="container mx-auto px-4 py-8">
     <h1 class="text-3xl font-bold mb-6">最新文章</h1>
     <div v-if="loading" class="text-center">加载中...</div>
+    <div v-else-if="posts.length === 0" class="text-center text-gray-600">
+      暂无博客文章
+    </div>
     <div v-else class="grid gap-6">
       <div v-for="post in posts" :key="post.id" class="bg-white shadow-md rounded-lg p-6">
         <h2 class="text-2xl font-semibold mb-2">
@@ -50,3 +53,10 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+</style>

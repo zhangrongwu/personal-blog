@@ -10,3 +10,14 @@ type = "static"
 routes = [
   { pattern = "blog.zhangrongwu.com", custom_domain = true }
 ]
+
+# Workers 配置
+name = "personal-blog-workers"
+main = "src/worker.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+JWT_SECRET = "your_jwt_secret_here"
+
+[d1_databases]
+DB = { binding = "DB", database_name = "personal-blog-db", database_id = "your_d1_database_id" }

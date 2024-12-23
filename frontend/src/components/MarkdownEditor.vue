@@ -4,21 +4,31 @@ import { marked } from 'marked';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
 
-// 配置 marked 以支持代码高亮
-const markedOptions = {
-  highlight: (code: string, lang: string) => {
-    if (lang && hljs.getLanguage(lang)) {
-      try {
-        return hljs.highlight(lang, code).value
-      } catch (err) {
-        console.error('Highlighting error:', err)
-      }
-    }
-    return code
+// 创建自定义渲染器
+const renderer = new marked.Renderer();
+
+renderer.code = (code: string, language?: string) => {
+  const validLang = language && hljs.getLanguage(language) ? language : 'plaintext';
+  
+  try {
+    const highlightedCode = hljs.highlight(validLang, code).value;
+    return `<pre><code class="language-${validLang}">${highlightedCode}</code></pre>`;
+  } catch (err) {
+    console.error('Highlighting error:', err);
+    return `<pre><code class="language-${validLang}">${code}</code></pre>`;
   }
 };
 
-marked.setOptions(markedOptions);
+// 配置 marked
+marked.use({
+  renderer,
+  gfm: true,
+  breaks: false,
+  pedantic: false,
+  sanitize: false,
+  smartypants: false,
+  xhtml: false
+});
 
 // Props 定义
 const props = defineProps({

@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { jwt } from 'hono/jwt'
+import { z } from 'zod'
 
 type Bindings = {
   DB: D1Database
@@ -18,17 +19,17 @@ app.post('/api/login', async (c) => {
   
   try {
     // 查询用户
-    const { success, error } = await c.env.DB
+    const user = await c.env.DB
       .prepare('SELECT * FROM users WHERE email = ?')
       .bind(email)
       .first()
 
-    if (error) {
-      return c.json({ success: false, message: '数据库查询错误' }, 500)
+    if (!user) {
+      return c.json({ success: false, message: '无效的邮箱或密码' }, 401)
     }
 
     // 验证密码（实际应使用安全的密码哈希）
-    if (!user || user.password !== password) {
+    if (user.password !== password) {
       return c.json({ success: false, message: '无效的邮箱或密码' }, 401)
     }
 
@@ -86,6 +87,69 @@ app.post('/api/register', async (c) => {
     })
   } catch (err) {
     return c.json({ success: false, message: '注册时发生错误' }, 500)
+  }
+})
+
+// 获取博客文章列表
+app.get('/api/posts', async (c) => {
+  try {
+    const { results } = await c.env.DB
+      .prepare('SELECT * FROM posts ORDER BY created_at DESC LIMIT 10')
+      .all()
+
+    return c.json({
+      success: true,
+      posts: results
+    })
+  } catch (err) {
+    return c.json({ success: false, message: '获取文章列表失败' }, 500)
+  }
+})
+
+// 获取单篇博客文章
+app.get('/api/posts/:id', async (c) => {
+  const postId = c.req.param('id')
+
+  try {
+    const post = await c.env.DB
+      .prepare('SELECT * FROM posts WHERE id = ?')
+      .bind(postId)
+      .first()
+
+    if (!post) {
+      return c.json({ success: false, message: '文章不存在' }, 404)
+    }
+
+    return c.json({
+      success: true,
+      post
+    })
+  } catch (err) {
+    return c.json({ success: false, message: '获取文章详情失败' }, 500)
+  }
+})
+
+// 获取文章归档
+app.get('/api/posts/archives', async (c) => {
+  try {
+    const { results } = await c.env.DB
+      .prepare(`
+        SELECT 
+          strftime('%Y', created_at) as year, 
+          strftime('%m', created_at) as month, 
+          COUNT(*) as post_count 
+        FROM posts 
+        GROUP BY year, month 
+        ORDER BY year DESC, month DESC
+      `)
+      .all()
+
+    return c.json({
+      success: true,
+      archives: results
+    })
+  } catch (err) {
+    return c.json({ success: false, message: '获取文章归档失败' }, 500)
   }
 })
 

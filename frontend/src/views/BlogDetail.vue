@@ -151,39 +151,31 @@ import { marked } from 'marked';
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 
-const markedOptions = {
-  highlight: (code: string, lang: string) => {
-    if (lang && hljs.getLanguage(lang)) {
-      try {
-        return hljs.highlight(lang, code).value
-      } catch (err) {
-        console.error('Highlighting error:', err)
-      }
-    }
-    return code
+// 创建自定义渲染器
+const renderer = new marked.Renderer();
+
+renderer.code = (code: string, language?: string) => {
+  const validLang = language && hljs.getLanguage(language) ? language : 'plaintext';
+  
+  try {
+    const highlightedCode = hljs.highlight(validLang, code).value;
+    return `<pre><code class="language-${validLang}">${highlightedCode}</code></pre>`;
+  } catch (err) {
+    console.error('Highlighting error:', err);
+    return `<pre><code class="language-${validLang}">${code}</code></pre>`;
   }
-}
+};
 
-marked.setOptions(markedOptions);
-
-// 博客文章接口
-interface BlogPost {
-  id: number;
-  title: string;
-  content: string;
-  author_name: string;
-  created_at: string;
-  tags?: string[];
-  author_id: number;
-}
-
-interface Comment {
-  id: number;
-  content: string;
-  author_id: number;
-  author_name: string;
-  created_at: string;
-}
+// 配置 marked
+marked.use({
+  renderer,
+  gfm: true,
+  breaks: false,
+  pedantic: false,
+  sanitize: false,
+  smartypants: false,
+  xhtml: false
+});
 
 const route = useRoute();
 const router = useRouter();
@@ -208,7 +200,7 @@ const fetchBlogPost = async () => {
     if (response.data.success && response.data.post) {
       post.value = response.data.post;
       // 渲染 Markdown 内容
-      renderedContent.value = marked(response.data.post.content || '');
+      renderedContent.value = await marked.parse(response.data.post.content || '');
     } else {
       error.value = '文章加载失败';
       console.error('文章加载失败:', response.data);

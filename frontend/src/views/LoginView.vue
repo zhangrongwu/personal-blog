@@ -110,7 +110,7 @@ const handleLogin = async () => {
     const response = await authService.login(email.value, password.value);
     
     // 存储用户信息到 Pinia store
-    userStore.setUser({
+    userStore.updateUser({
       id: response.user.id,
       username: response.user.username,
       email: response.user.email

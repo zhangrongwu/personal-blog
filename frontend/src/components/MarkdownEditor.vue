@@ -2,15 +2,23 @@
 import { ref, computed } from 'vue';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
-import 'highlight.js/styles/github-dark.css';
+import 'highlight.js/styles/github.css';
 
 // 配置 marked 以支持代码高亮
-marked.setOptions({
-  highlight: function(code: string, lang: string) {
-    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-    return hljs.highlight(code, { language }).value;
+const markedOptions = {
+  highlight: (code: string, lang: string) => {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(lang, code).value
+      } catch (err) {
+        console.error('Highlighting error:', err)
+      }
+    }
+    return code
   }
-});
+};
+
+marked.setOptions(markedOptions);
 
 // Props 定义
 const props = defineProps({

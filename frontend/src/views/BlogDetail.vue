@@ -148,16 +148,23 @@ import { useRoute, useRouter } from 'vue-router';
 import { apiClient } from '@/services/api';
 import { useUserStore } from '@/stores/user';
 import { marked } from 'marked';
-import hljs from 'highlight.js';
-import 'highlight.js/styles/github-dark.css';
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github.css'
 
-// 配置 marked 以支持代码高亮
-marked.setOptions({
-  highlight: function(code: string, lang: string) {
-    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-    return hljs.highlight(code, { language }).value;
+const markedOptions = {
+  highlight: (code: string, lang: string) => {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(lang, code).value
+      } catch (err) {
+        console.error('Highlighting error:', err)
+      }
+    }
+    return code
   }
-});
+}
+
+marked.setOptions(markedOptions);
 
 // 博客文章接口
 interface BlogPost {
@@ -198,10 +205,10 @@ const fetchBlogPost = async () => {
 
     const response = await apiClient.get(`/posts/${postId}`);
 
-    if (response.data.success) {
+    if (response.data.success && response.data.post) {
       post.value = response.data.post;
       // 渲染 Markdown 内容
-      renderedContent.value = marked(post.value.content);
+      renderedContent.value = marked(response.data.post.content || '');
     } else {
       error.value = '文章加载失败';
       console.error('文章加载失败:', response.data);

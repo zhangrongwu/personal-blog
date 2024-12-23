@@ -4,6 +4,7 @@ compatibility_date = "2024-01-01"
 
 [vars]
 BLOG_TITLE = "我的个人博客"
+JWT_SECRET = "your-256-bit-secret-key-for-jwt"  # 请替换为安全的随机密钥
 
 [[d1_databases]]
 binding = "DB"

@@ -1,12 +1,32 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { registerUser, loginUser, verifyJWT } from './auth';
+import { 
+  createPost, 
+  getPosts, 
+  getPostById, 
+  updatePost, 
+  deletePost,
+  getAllTags,
+  getPostArchives,
+  getPostsByYearMonth,
+  getPopularPosts,
+  getPopularTags
+} from './blog';
+import {
+  createComment,
+  getCommentsByPostId,
+  updateComment,
+  deleteComment
+} from './comment';
 
-type Bindings = {
+type Env = {
   DB: D1Database;
   BLOG_BUCKET: R2Bucket;
+  JWT_SECRET: string;
 };
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Env }>();
 
 // 跨域配置
 app.use('*', cors({
@@ -20,6 +40,261 @@ app.use('*', cors({
   exposeHeaders: ['Content-Length'],
   maxAge: 600,
 }));
+
+// 用户认证路由
+app.post('/register', async (c) => {
+  const { username, email, password } = await c.req.json();
+  const result = await registerUser(c.env.DB, { username, email, password });
+  
+  return c.json(result, result.success ? 201 : 400);
+});
+
+app.post('/login', async (c) => {
+  const { email, password } = await c.req.json();
+  const result = await loginUser(c.env.DB, email, password);
+  
+  return c.json(result, result.success ? 200 : 401);
+});
+
+// 博客文章路由
+app.post('/posts', async (c) => {
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return c.json({ error: '未提供令牌' }, 401);
+  }
+
+  const verification = await verifyJWT(token, c.env.JWT_SECRET);
+  
+  if (!verification.valid) {
+    return c.json({ error: '无效的令牌' }, 401);
+  }
+
+  const postData = await c.req.json();
+  postData.author_id = verification.payload.userId;
+
+  const result = await createPost(c.env.DB, postData);
+  
+  return c.json(result, result.success ? 201 : 400);
+});
+
+app.get('/posts', async (c) => {
+  const page = Number(c.req.query('page') || 1);
+  const pageSize = Number(c.req.query('pageSize') || 10);
+  const status = c.req.query('status') as 'draft' | 'published' | undefined;
+  const tags = c.req.query('tags')?.split(',');
+  const searchQuery = c.req.query('searchQuery');
+
+  const result = await getPosts(c.env.DB, { 
+    page, 
+    pageSize, 
+    status, 
+    tags, 
+    searchQuery 
+  });
+  
+  return c.json(result);
+});
+
+// 获取所有标签
+app.get('/tags', async (c) => {
+  const result = await getAllTags(c.env.DB);
+  
+  return c.json(result);
+});
+
+// 获取文章归档
+app.get('/archives', async (c) => {
+  const result = await getPostArchives(c.env.DB);
+  
+  return c.json(result);
+});
+
+// 获取指定年月的文章
+app.get('/archives/:year/:month', async (c) => {
+  const year = c.req.param('year');
+  const month = c.req.param('month');
+
+  const result = await getPostsByYearMonth(c.env.DB, year, month);
+  
+  return c.json(result);
+});
+
+// 获取热门文章
+app.get('/popular-posts', async (c) => {
+  const limit = Number(c.req.query('limit') || 5);
+
+  const result = await getPopularPosts(c.env.DB, limit);
+  
+  return c.json(result);
+});
+
+// 获取热门标签
+app.get('/popular-tags', async (c) => {
+  const limit = Number(c.req.query('limit') || 10);
+
+  const result = await getPopularTags(c.env.DB, limit);
+  
+  return c.json(result);
+});
+
+app.get('/posts/:id', async (c) => {
+  const postId = Number(c.req.param('id'));
+  const result = await getPostById(c.env.DB, postId);
+  
+  return c.json(result, result.success ? 200 : 404);
+});
+
+app.put('/posts/:id', async (c) => {
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return c.json({ error: '未提供令牌' }, 401);
+  }
+
+  const verification = await verifyJWT(token, c.env.JWT_SECRET);
+  
+  if (!verification.valid) {
+    return c.json({ error: '无效的令牌' }, 401);
+  }
+
+  const postId = Number(c.req.param('id'));
+  const postData = await c.req.json();
+
+  const result = await updatePost(c.env.DB, postId, postData);
+  
+  return c.json(result, result.success ? 200 : 400);
+});
+
+app.delete('/posts/:id', async (c) => {
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return c.json({ error: '未提供令牌' }, 401);
+  }
+
+  const verification = await verifyJWT(token, c.env.JWT_SECRET);
+  
+  if (!verification.valid) {
+    return c.json({ error: '无效的令牌' }, 401);
+  }
+
+  const postId = Number(c.req.param('id'));
+  const result = await deletePost(c.env.DB, postId);
+  
+  return c.json(result, result.success ? 200 : 400);
+});
+
+// 评论路由
+app.post('/posts/:id/comments', async (c) => {
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return c.json({ error: '未提供令牌' }, 401);
+  }
+
+  const verification = await verifyJWT(token, c.env.JWT_SECRET);
+  
+  if (!verification.valid) {
+    return c.json({ error: '无效的令牌' }, 401);
+  }
+
+  const postId = Number(c.req.param('id'));
+  const { content } = await c.req.json();
+
+  const result = await createComment(
+    c.env.DB, 
+    postId, 
+    verification.payload.userId, 
+    content
+  );
+  
+  return c.json(result, result.success ? 201 : 400);
+});
+
+app.get('/posts/:id/comments', async (c) => {
+  const postId = Number(c.req.param('id'));
+  const page = Number(c.req.query('page') || 1);
+  const pageSize = Number(c.req.query('pageSize') || 10);
+
+  const result = await getCommentsByPostId(
+    c.env.DB, 
+    postId, 
+    { page, pageSize }
+  );
+  
+  return c.json(result);
+});
+
+app.put('/comments/:id', async (c) => {
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return c.json({ error: '未提供令牌' }, 401);
+  }
+
+  const verification = await verifyJWT(token, c.env.JWT_SECRET);
+  
+  if (!verification.valid) {
+    return c.json({ error: '无效的令牌' }, 401);
+  }
+
+  const commentId = Number(c.req.param('id'));
+  const { content } = await c.req.json();
+
+  const result = await updateComment(
+    c.env.DB, 
+    commentId, 
+    verification.payload.userId, 
+    content
+  );
+  
+  return c.json(result, result.success ? 200 : 400);
+});
+
+app.delete('/comments/:id', async (c) => {
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return c.json({ error: '未提供令牌' }, 401);
+  }
+
+  const verification = await verifyJWT(token, c.env.JWT_SECRET);
+  
+  if (!verification.valid) {
+    return c.json({ error: '无效的令牌' }, 401);
+  }
+
+  const commentId = Number(c.req.param('id'));
+
+  const result = await deleteComment(
+    c.env.DB, 
+    commentId, 
+    verification.payload.userId
+  );
+  
+  return c.json(result, result.success ? 200 : 400);
+});
+
+// 受保护的路由示例
+app.get('/profile', async (c) => {
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return c.json({ error: '未提供令牌' }, 401);
+  }
+
+  const verification = await verifyJWT(token, c.env.JWT_SECRET);
+  
+  if (!verification.valid) {
+    return c.json({ error: '无效的令牌' }, 401);
+  }
+
+  return c.json({ 
+    message: '成功获取用户信息', 
+    user: verification.payload 
+  });
+});
 
 // 初始化数据库
 app.get('/init', async (c) => {

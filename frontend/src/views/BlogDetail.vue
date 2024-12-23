@@ -1,168 +1,173 @@
 <template>
-  <div class="container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
-    <div class="lg:col-span-3">
-      <article v-if="post" class="prose dark:prose-invert max-w-none">
-        <header class="mb-8">
-          <h1 class="text-4xl font-bold mb-4 text-gray-900 dark:text-white">
-            {{ post.title }}
-          </h1>
-          <div class="flex items-center justify-between text-gray-600 dark:text-gray-300">
-            <div class="flex items-center space-x-4">
-              <span>作者: {{ post.author_name }}</span>
-              <span>发布时间: {{ formatDate(post.created_at) }}</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <span 
-                v-for="tag in post.tags" 
-                :key="tag"
-                class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-xs rounded-full"
-              >
-                {{ tag }}
-              </span>
-            </div>
-          </div>
-        </header>
-
-        <div 
-          class="markdown-content" 
-          v-html="renderedContent"
-        ></div>
-
-        <div class="flex justify-between items-center border-t pt-6 dark:border-gray-700">
-          <div class="flex space-x-4">
-            <template v-if="isAuthenticated && post.author_id === currentUserId">
-              <router-link 
-                :to="`/blog/edit/${post.id}`"
-                class="btn-secondary"
-              >
-                编辑文章
-              </router-link>
-            </template>
-          </div>
-          <div class="flex items-center space-x-2">
-            <button 
-              @click="toggleLike" 
-              class="flex items-center space-x-1 text-gray-600 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
-            >
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                class="h-6 w-6" 
-                :fill="isLiked ? 'currentColor' : 'none'" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-              >
-                <path 
-                  stroke-linecap="round" 
-                  stroke-linejoin="round" 
-                  stroke-width="2" 
-                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
-                />
-              </svg>
-              <span>{{ likeCount }}</span>
-            </button>
-          </div>
-        </div>
-
-        <section class="mt-8">
-          <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
-            评论 ({{ comments.length }})
-          </h2>
-
-          <div v-if="isAuthenticated" class="mb-6">
-            <textarea 
-              v-model="newComment" 
-              placeholder="写下你的评论..." 
-              rows="4"
-              class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            ></textarea>
-            <button 
-              @click="submitComment" 
-              class="mt-2 btn"
-            >
-              发布评论
-            </button>
-          </div>
-
-          <div v-if="comments.length === 0" class="text-center py-6 text-gray-600 dark:text-gray-300">
-            暂无评论
-          </div>
-
-          <div v-else class="space-y-6">
-            <div 
-              v-for="comment in comments" 
-              :key="comment.id"
-              class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 shadow-sm"
-            >
-              <div class="flex justify-between items-center mb-2">
-                <div class="flex items-center space-x-3">
-                  <span class="font-semibold text-gray-900 dark:text-white">
-                    {{ comment.author_name }}
-                  </span>
-                  <span class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ formatDate(comment.created_at) }}
-                  </span>
-                </div>
-                <div v-if="comment.author_id === currentUserId" class="flex space-x-2">
-                  <button 
-                    @click="editComment(comment)" 
-                    class="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300"
-                  >
-                    编辑
-                  </button>
-                  <button 
-                    @click="deleteComment(comment.id)" 
-                    class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    删除
-                  </button>
-                </div>
-              </div>
-              <p class="text-gray-800 dark:text-gray-200">
-                {{ comment.content }}
-              </p>
-            </div>
-          </div>
-        </section>
-      </article>
-
-      <div v-else class="text-center py-12">
-        <p class="text-gray-600 dark:text-gray-300">文章加载中...</p>
-      </div>
+  <div class="container mx-auto px-4 py-8 max-w-3xl">
+    <div v-if="loading" class="text-center">
+      <p class="text-gray-600 dark:text-gray-300">加载中...</p>
     </div>
 
-    <div class="hidden lg:block">
-      <Sidebar />
+    <div v-else-if="error" class="text-red-500 text-center">
+      {{ error }}
+    </div>
+
+    <article v-else-if="post" class="prose dark:prose-invert prose-lg">
+      <h1 class="text-3xl font-bold mb-4 text-gray-900 dark:text-white">
+        {{ post.title }}
+      </h1>
+
+      <div class="flex items-center text-gray-600 dark:text-gray-400 mb-6">
+        <span>作者: {{ post.author_name }}</span>
+        <span class="mx-2">•</span>
+        <time>{{ formatDate(post.created_at) }}</time>
+      </div>
+
+      <div 
+        class="markdown-content" 
+        v-html="renderedContent"
+      ></div>
+
+      <div v-if="post.tags && post.tags.length" class="mt-6">
+        <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+          标签
+        </h3>
+        <div class="flex flex-wrap gap-2">
+          <span 
+            v-for="tag in post.tags" 
+            :key="tag"
+            class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+          >
+            {{ tag }}
+          </span>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center border-t pt-6 dark:border-gray-700">
+        <div class="flex space-x-4">
+          <template v-if="isAuthenticated && post.author_id === currentUserId">
+            <router-link 
+              :to="`/blog/edit/${post.id}`"
+              class="btn-secondary"
+            >
+              编辑文章
+            </router-link>
+          </template>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button 
+            @click="toggleLike" 
+            class="flex items-center space-x-1 text-gray-600 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              class="h-6 w-6" 
+              :fill="isLiked ? 'currentColor' : 'none'" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path 
+                stroke-linecap="round" 
+                stroke-linejoin="round" 
+                stroke-width="2" 
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+              />
+            </svg>
+            <span>{{ likeCount }}</span>
+          </button>
+        </div>
+      </div>
+
+      <section class="mt-8">
+        <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+          评论 ({{ comments.length }})
+        </h2>
+
+        <div v-if="isAuthenticated" class="mb-6">
+          <textarea 
+            v-model="newComment" 
+            placeholder="写下你的评论..." 
+            rows="4"
+            class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          ></textarea>
+          <button 
+            @click="submitComment" 
+            class="mt-2 btn"
+          >
+            发布评论
+          </button>
+        </div>
+
+        <div v-if="comments.length === 0" class="text-center py-6 text-gray-600 dark:text-gray-300">
+          暂无评论
+        </div>
+
+        <div v-else class="space-y-6">
+          <div 
+            v-for="comment in comments" 
+            :key="comment.id"
+            class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 shadow-sm"
+          >
+            <div class="flex justify-between items-center mb-2">
+              <div class="flex items-center space-x-3">
+                <span class="font-semibold text-gray-900 dark:text-white">
+                  {{ comment.author_name }}
+                </span>
+                <span class="text-sm text-gray-600 dark:text-gray-400">
+                  {{ formatDate(comment.created_at) }}
+                </span>
+              </div>
+              <div v-if="comment.author_id === currentUserId" class="flex space-x-2">
+                <button 
+                  @click="editComment(comment)" 
+                  class="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300"
+                >
+                  编辑
+                </button>
+                <button 
+                  @click="deleteComment(comment.id)" 
+                  class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                >
+                  删除
+                </button>
+              </div>
+            </div>
+            <p class="text-gray-800 dark:text-gray-200">
+              {{ comment.content }}
+            </p>
+          </div>
+        </div>
+      </section>
+    </article>
+
+    <div v-else class="text-center py-12">
+      <p class="text-gray-600 dark:text-gray-300">文章加载中...</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { apiClient } from '@/services/api';
 import { useUserStore } from '@/stores/user';
-import Sidebar from '@/components/Sidebar.vue';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github-dark.css';
 
 // 配置 marked 以支持代码高亮
 marked.setOptions({
-  highlight: function(code, lang) {
+  highlight: function(code: string, lang: string) {
     const language = hljs.getLanguage(lang) ? lang : 'plaintext';
     return hljs.highlight(code, { language }).value;
-  },
-  langPrefix: 'hljs language-',
+  }
 });
 
+// 博客文章接口
 interface BlogPost {
   id: number;
   title: string;
   content: string;
-  tags: string[];
-  created_at: string;
-  author_id: number;
   author_name: string;
+  created_at: string;
+  tags?: string[];
+  author_id: number;
 }
 
 interface Comment {
@@ -174,9 +179,39 @@ interface Comment {
 }
 
 const route = useRoute();
+const router = useRouter();
 const userStore = useUserStore();
 
+// 博客文章数据
 const post = ref<BlogPost | null>(null);
+const loading = ref(true);
+const error = ref('');
+
+// 渲染 Markdown 内容
+const renderedContent = ref('');
+
+// 获取博客文章详情
+const fetchBlogPost = async () => {
+  try {
+    const postId = route.params.id;
+
+    const response = await apiClient.get(`/posts/${postId}`);
+
+    if (response.data.success) {
+      post.value = response.data.post;
+      
+      // 渲染 Markdown
+      renderedContent.value = marked.parse(response.data.post.content);
+      
+      loading.value = false;
+    }
+  } catch (err: any) {
+    error.value = err.message || '获取博客文章失败';
+    loading.value = false;
+    router.push('/blog');
+  }
+};
+
 const comments = ref<Comment[]>([]);
 const newComment = ref('');
 const editingComment = ref<Comment | null>(null);
@@ -186,22 +221,6 @@ const currentUserId = ref(userStore.id);
 
 const isLiked = ref(false);
 const likeCount = ref(0);
-
-const renderedContent = ref('');
-
-async function fetchPostDetails() {
-  try {
-    const postId = Number(route.params.id);
-    const response = await apiClient.get(`/posts/${postId}`);
-
-    if (response.data.success) {
-      post.value = response.data.post;
-      renderedContent.value = marked.parse(response.data.post.content);
-    }
-  } catch (error) {
-    console.error('获取文章详情失败', error);
-  }
-}
 
 async function fetchComments() {
   try {
@@ -288,7 +307,7 @@ function formatDate(dateString: string) {
 }
 
 onMounted(() => {
-  fetchPostDetails();
+  fetchBlogPost();
   fetchComments();
 });
 </script>

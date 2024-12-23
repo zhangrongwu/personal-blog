@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github-dark.css';
 
 // 配置 marked 以支持代码高亮
 marked.setOptions({
-  highlight: function(code, lang) {
+  highlight: function(code: string, lang: string) {
     const language = hljs.getLanguage(lang) ? lang : 'plaintext';
     return hljs.highlight(code, { language }).value;
-  },
-  langPrefix: 'hljs language-',
+  }
 });
 
+// Props 定义
 const props = defineProps({
   modelValue: {
     type: String,
@@ -20,86 +20,72 @@ const props = defineProps({
   },
   height: {
     type: String,
-    default: '400px'
+    default: '300px'
   }
 });
 
+// Emits 定义
 const emit = defineEmits(['update:modelValue']);
 
-const content = computed({
-  get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
+// 编辑器状态
+const isPreviewMode = ref(false);
+
+// 渲染 Markdown
+const renderedContent = computed(() => {
+  return marked.parse(props.modelValue || '');
 });
 
-const previewHtml = computed(() => {
-  return marked.parse(content.value || '');
-});
+// 切换预览模式
+const togglePreviewMode = () => {
+  isPreviewMode.value = !isPreviewMode.value;
+};
 
-const activeTab = ref<'edit' | 'preview'>('edit');
+// 更新内容
+const updateContent = (event: Event) => {
+  const target = event.target as HTMLTextAreaElement;
+  emit('update:modelValue', target.value);
+};
 </script>
 
 <template>
   <div class="markdown-editor">
-    <div class="tabs mb-2">
+    <div class="editor-toolbar">
       <button 
-        @click="activeTab = 'edit'"
-        :class="['tab', activeTab === 'edit' ? 'active' : '']"
+        @click="togglePreviewMode"
+        class="px-4 py-2 bg-blue-500 text-white rounded"
       >
-        编辑
-      </button>
-      <button 
-        @click="activeTab = 'preview'"
-        :class="['tab', activeTab === 'preview' ? 'active' : '']"
-      >
-        预览
+        {{ isPreviewMode ? '编辑' : '预览' }}
       </button>
     </div>
-    <div class="editor-container">
+
+    <div class="editor-container" :style="{ height }">
       <textarea 
-        v-if="activeTab === 'edit'"
-        v-model="content"
-        :style="{ height }"
-        class="w-full p-2 border rounded dark:bg-gray-800 dark:text-white dark:border-gray-600"
-        placeholder="使用 Markdown 编写您的博客内容"
+        v-if="!isPreviewMode"
+        :value="modelValue"
+        @input="updateContent"
+        class="w-full h-full p-4 border rounded dark:bg-gray-800 dark:text-white"
+        placeholder="使用 Markdown 编写你的内容"
       ></textarea>
+
       <div 
         v-else 
-        :style="{ height }"
-        class="preview w-full p-2 border rounded overflow-auto dark:bg-gray-800 dark:text-white dark:border-gray-600"
-        v-html="previewHtml"
+        v-html="renderedContent"
+        class="w-full h-full p-4 overflow-auto prose dark:prose-invert"
       ></div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.tabs {
-  display: flex;
-  gap: 10px;
+.markdown-editor {
+  @apply border rounded dark:border-gray-700;
 }
-.tab {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  background-color: #f8f9fa;
-  border-radius: 4px;
+
+.editor-toolbar {
+  @apply p-2 border-b dark:border-gray-700;
 }
-.tab.active {
-  background-color: #007bff;
-  color: white;
-}
-.preview {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-/* 代码块样式 */
-.preview pre {
-  background-color: #f4f4f4;
-  border-radius: 4px;
-  padding: 10px;
-  margin: 10px 0;
-  overflow-x: auto;
-}
-.preview code {
-  font-family: 'Courier New', Courier, monospace;
+
+.editor-container {
+  @apply relative;
 }
 </style>

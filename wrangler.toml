@@ -1,0 +1,12 @@
+[build]
+command = "npm run build"
+pages_build_output_dir = "dist"
+
+[deploy]
+projectName = "personal-blog"
+type = "static"
+
+[env.production]
+routes = [
+  { pattern = "blog.zhangrongwu.com", custom_domain = true }
+]

@@ -11,7 +11,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('@/views/Login.vue'),
+    component: () => import('@/views/LoginView.vue'),
     meta: { requiresAuth: false }
   },
   {
@@ -28,9 +28,9 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: '/blog',
-    name: 'BlogList',
-    component: () => import('@/views/BlogList.vue'),
-    meta: { requiresAuth: false }
+    name: 'Blog',
+    component: () => import('@/views/BlogView.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/blog/create',
@@ -65,7 +65,7 @@ const routes: Array<RouteRecordRaw> = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes
 });
 

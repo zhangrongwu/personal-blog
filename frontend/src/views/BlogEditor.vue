@@ -1,99 +1,77 @@
 <template>
-  <div class="container mx-auto px-4 py-8 max-w-4xl">
+  <div class="container mx-auto px-4 py-8">
     <h1 class="text-3xl font-bold mb-6 text-gray-900 dark:text-white">
-      {{ isEditing ? '编辑文章' : '创建新文章' }}
+      {{ route.params.id ? '编辑博客' : '创建新博客' }}
     </h1>
 
-    <form @submit.prevent="submitPost" class="space-y-6">
-      <div>
-        <label 
-          for="title" 
-          class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          文章标题
+    <form @submit.prevent="submitPost" class="max-w-2xl mx-auto">
+      <div class="mb-4">
+        <label for="title" class="block text-gray-700 dark:text-gray-300 mb-2">
+          博客标题
         </label>
         <input 
           id="title"
-          v-model="title" 
+          v-model="post.title"
           type="text" 
-          required 
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          required
+          class="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:text-white dark:border-gray-600"
+          placeholder="输入博客标题"
         />
       </div>
 
-      <div>
-        <label 
-          for="tags" 
-          class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          标签（用逗号分隔）
+      <div class="mb-4">
+        <label class="block text-gray-700 dark:text-gray-300 mb-2">
+          博客内容 (支持 Markdown)
         </label>
-        <input 
-          id="tags"
-          v-model="tagsInput" 
-          type="text" 
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          placeholder="例如: Vue, TypeScript, 前端"
+        <MarkdownEditor 
+          v-model="post.content"
+          height="500px"
         />
       </div>
 
-      <div>
-        <label 
-          for="content" 
-          class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          文章内容
+      <div class="mb-4">
+        <label class="block text-gray-700 dark:text-gray-300 mb-2">
+          标签
         </label>
-        <div class="mt-1 grid grid-cols-2 gap-4">
-          <div>
-            <textarea 
-              id="content"
-              v-model="content" 
-              rows="20" 
-              required 
-              class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="使用 Markdown 编写你的文章"
-            ></textarea>
-          </div>
-          <div>
-            <div 
-              class="prose dark:prose-invert prose-lg p-4 bg-gray-50 dark:bg-gray-800 rounded-md overflow-auto h-full"
-              v-html="renderedContent"
-            ></div>
-          </div>
+        <div class="flex mb-2">
+          <input 
+            v-model="newTag"
+            type="text" 
+            class="flex-grow px-3 py-2 border rounded dark:bg-gray-800 dark:text-white dark:border-gray-600"
+            placeholder="添加标签"
+            @keyup.enter="addTag"
+          />
+          <button 
+            type="button"
+            @click="addTag"
+            class="ml-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            添加
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-2">
+          <span 
+            v-for="tag in post.tags" 
+            :key="tag"
+            class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm flex items-center"
+          >
+            {{ tag }}
+            <button 
+              @click="removeTag(tag)"
+              class="ml-2 text-red-500 hover:text-red-700"
+            >
+              ×
+            </button>
+          </span>
         </div>
       </div>
 
-      <div>
-        <label 
-          for="status" 
-          class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          文章状态
-        </label>
-        <select 
-          id="status"
-          v-model="status" 
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-        >
-          <option value="draft">草稿</option>
-          <option value="published">发布</option>
-        </select>
-      </div>
-
-      <div class="flex justify-end space-x-4">
-        <button 
-          type="button" 
-          @click="cancel"
-          class="btn-secondary"
-        >
-          取消
-        </button>
+      <div class="flex justify-end">
         <button 
           type="submit" 
-          class="btn"
+          class="px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600"
         >
-          {{ isEditing ? '更新文章' : '发布文章' }}
+          {{ route.params.id ? '更新' : '发布' }}博客
         </button>
       </div>
     </form>
@@ -101,79 +79,89 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { apiClient } from '@/services/api';
-import marked from 'marked';
-import DOMPurify from 'dompurify';
+import { ref, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { authService } from '@/services/api';
+import MarkdownEditor from '@/components/MarkdownEditor.vue';
 
-const route = useRoute();
 const router = useRouter();
+const route = useRoute();
 
-const isEditing = computed(() => route.name === 'BlogEdit');
-const postId = ref<number | null>(null);
+// 博客文章数据结构
+interface BlogPost {
+  id?: number;
+  title: string;
+  content: string;
+  tags?: string[];
+}
 
-const title = ref('');
-const tagsInput = ref('');
-const content = ref('');
-const status = ref<'draft' | 'published'>('draft');
-
-const renderedContent = computed(() => {
-  const htmlContent = marked(content.value);
-  return DOMPurify.sanitize(htmlContent);
+// 表单数据
+const post = ref<BlogPost>({
+  title: '',
+  content: '',
+  tags: []
 });
 
-async function fetchPost() {
-  if (isEditing.value) {
-    try {
-      const id = Number(route.params.id);
-      postId.value = id;
-      const response = await apiClient.get(`/posts/${id}`);
+// 标签管理
+const newTag = ref('');
+const addTag = () => {
+  if (newTag.value.trim() && !post.value.tags?.includes(newTag.value.trim())) {
+    post.value.tags = post.value.tags || [];
+    post.value.tags.push(newTag.value.trim());
+    newTag.value = '';
+  }
+};
 
-      if (response.data.success) {
-        const post = response.data.post;
-        title.value = post.title;
-        content.value = post.content;
-        status.value = post.status;
-        tagsInput.value = post.tags.join(', ');
-      }
+const removeTag = (tagToRemove: string) => {
+  post.value.tags = post.value.tags?.filter(tag => tag !== tagToRemove);
+};
+
+// 提交博客
+const submitPost = async () => {
+  try {
+    // 检查用户是否登录
+    const token = authService.getCurrentUser();
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    // 验证输入
+    if (!post.value.title.trim()) {
+      alert('请输入博客标题');
+      return;
+    }
+
+    if (!post.value.content.trim()) {
+      alert('请输入博客内容');
+      return;
+    }
+
+    // TODO: 实际的 API 调用
+    console.log('提交的博客文章:', post.value);
+    
+    // 成功后跳转到博客列表
+    router.push('/blog');
+  } catch (error) {
+    console.error('发布博客失败:', error);
+    alert('发布博客失败，请重试');
+  }
+};
+
+// 如果是编辑模式，获取现有博客文章
+onMounted(async () => {
+  const postId = route.params.id;
+  if (postId) {
+    try {
+      // TODO: 获取特定 ID 的博客文章
+      // const existingPost = await fetchBlogPost(postId);
+      // post.value = existingPost;
     } catch (error) {
-      console.error('获取文章失败', error);
+      console.error('获取博客文章失败:', error);
       router.push('/blog');
     }
   }
-}
-
-async function submitPost() {
-  try {
-    const postData = {
-      title: title.value,
-      content: content.value,
-      tags: tagsInput.value.split(',').map(tag => tag.trim()).filter(Boolean),
-      status: status.value
-    };
-
-    if (isEditing.value && postId.value) {
-      // 更新文章
-      await apiClient.put(`/posts/${postId.value}`, postData);
-    } else {
-      // 创建文章
-      await apiClient.post('/posts', postData);
-    }
-
-    // 跳转到博客列表或文章详情
-    router.push('/blog');
-  } catch (error) {
-    console.error('文章提交失败', error);
-    // 可以添加错误提示
-  }
-}
-
-function cancel() {
-  router.push('/blog');
-}
-
-onMounted(fetchPost);
+});
 </script>
 
 <style scoped>

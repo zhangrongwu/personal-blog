@@ -24,8 +24,8 @@
         </header>
 
         <div 
-          v-html="post.content" 
-          class="mb-8 prose-p:my-4 prose-headings:mb-4 prose-img:rounded-lg prose-img:shadow-md"
+          class="markdown-content" 
+          v-html="renderedContent"
         ></div>
 
         <div class="flex justify-between items-center border-t pt-6 dark:border-gray-700">
@@ -142,6 +142,18 @@ import { useRoute } from 'vue-router';
 import { apiClient } from '@/services/api';
 import { useUserStore } from '@/stores/user';
 import Sidebar from '@/components/Sidebar.vue';
+import { marked } from 'marked';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/github-dark.css';
+
+// 配置 marked 以支持代码高亮
+marked.setOptions({
+  highlight: function(code, lang) {
+    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+    return hljs.highlight(code, { language }).value;
+  },
+  langPrefix: 'hljs language-',
+});
 
 interface BlogPost {
   id: number;
@@ -175,6 +187,8 @@ const currentUserId = ref(userStore.id);
 const isLiked = ref(false);
 const likeCount = ref(0);
 
+const renderedContent = ref('');
+
 async function fetchPostDetails() {
   try {
     const postId = Number(route.params.id);
@@ -182,6 +196,7 @@ async function fetchPostDetails() {
 
     if (response.data.success) {
       post.value = response.data.post;
+      renderedContent.value = marked.parse(response.data.post.content);
     }
   } catch (error) {
     console.error('获取文章详情失败', error);
@@ -279,5 +294,29 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 可以添加额外的样式 */
+.markdown-content {
+  line-height: 1.6;
+}
+.markdown-content h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+.markdown-content h2 {
+  font-size: 1.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+.markdown-content p {
+  margin-bottom: 1rem;
+}
+.markdown-content pre {
+  background-color: #f4f4f4;
+  border-radius: 4px;
+  padding: 10px;
+  margin: 10px 0;
+  overflow-x: auto;
+}
+.markdown-content code {
+  font-family: 'Courier New', Courier, monospace;
+}
 </style>

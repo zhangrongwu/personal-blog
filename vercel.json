@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "name": "personal-blog",
+  "builds": [
+    { "src": "frontend/package.json", "use": "@vercel/static-build" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "frontend/dist/$1" }
+  ],
+  "env": {
+    "VITE_API_URL": "@blog_api_url"
+  }
+}

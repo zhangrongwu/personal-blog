@@ -49,6 +49,18 @@ const routes: Array<RouteRecordRaw> = [
     name: 'BlogDetail',
     component: () => import('@/views/BlogDetail.vue'),
     meta: { requiresAuth: false }
+  },
+  {
+    path: '/archives',
+    name: 'Archives',
+    component: () => import('@/views/Archives.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/archives/:year/:month',
+    name: 'ArchiveDetail',
+    component: () => import('@/views/ArchiveDetail.vue'),
+    meta: { requiresAuth: false }
   }
 ];
 

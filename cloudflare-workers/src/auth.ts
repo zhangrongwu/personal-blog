@@ -1,5 +1,6 @@
 import { D1Database } from '@cloudflare/workers-types';
 import * as jose from 'jose';
+import * as bcrypt from 'bcryptjs';
 
 interface User {
   id?: number;
@@ -19,8 +20,8 @@ export async function registerUser(db: D1Database, user: User) {
       return { success: false, message: '用户已存在' };
     }
 
-    // 密码哈希（使用 Cloudflare Workers 推荐的 crypto API）
-    const hashedPassword = await hashPassword(user.password);
+    // 哈希密码
+    const hashedPassword = await bcrypt.hash(user.password, 10);
 
     // 插入新用户
     const result = await db.prepare(
@@ -52,14 +53,20 @@ export async function loginUser(db: D1Database, email: string, password: string)
     }
 
     // 验证密码
-    const isPasswordValid = await verifyPassword(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       return { success: false, message: '密码错误' };
     }
 
     // 生成 JWT
-    const token = await generateJWT(user);
+    const token = await new jose.SignJWT({ 
+      userId: user.id, 
+      email: user.email 
+    })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime('2h')
+    .sign(new TextEncoder().encode('your-256-bit-secret'));
 
     return { 
       success: true, 
@@ -75,42 +82,12 @@ export async function loginUser(db: D1Database, email: string, password: string)
   }
 }
 
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-async function verifyPassword(inputPassword: string, storedHash: string): Promise<boolean> {
-  const hashedInput = await hashPassword(inputPassword);
-  return hashedInput === storedHash;
-}
-
-async function generateJWT(user: User) {
-  const secret = new TextEncoder().encode(
-    // 建议从环境变量获取
-    'your-256-bit-secret'
-  );
-
-  const jwt = await new jose.SignJWT({ 
-    userId: user.id, 
-    email: user.email 
-  })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('2h')
-    .sign(secret);
-
-  return jwt;
-}
-
 export async function verifyJWT(token: string) {
   try {
-    const secret = new TextEncoder().encode('your-256-bit-secret');
-    const { payload } = await jose.jwtVerify(token, secret);
+    const { payload } = await jose.jwtVerify(
+      token, 
+      new TextEncoder().encode('your-256-bit-secret')
+    );
     return { valid: true, payload };
   } catch {
     return { valid: false, payload: null };

@@ -6,7 +6,7 @@
           <router-link to="/" class="flex-shrink-0">
             <img 
               class="h-8 w-8" 
-              src="/logo.png" 
+              :src="logoImage" 
               alt="博客 Logo"
             />
           </router-link>
@@ -49,7 +49,7 @@
                   stroke-linecap="round" 
                   stroke-linejoin="round" 
                   stroke-width="2" 
-                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m3.343-3.657l-1.414-1.414m12.728 12.728l1.414 1.414M12 8a4 4 0 100 8 4 4 0 000-8z" 
+                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m3.343-5.657L5.636 5.636m12.728 12.728L18.364 18.364M12 7a5 5 0 110 10 5 5 0 010-10z" 
                 />
               </svg>
               <svg 
@@ -120,6 +120,8 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import { authService } from '@/services/api';
+
+import logoImage from '@/assets/logo.png';
 
 const router = useRouter();
 const userStore = useUserStore();

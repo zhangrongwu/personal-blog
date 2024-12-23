@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://your-workers-url.workers.dev';
+const API_BASE_URL = 'http://localhost:8787';
 
 export const authService = {
   async register(username: string, email: string, password: string) {
@@ -50,14 +50,14 @@ export const apiClient = axios.create({
 
 // 请求拦截器
 apiClient.interceptors.request.use(
-  config => {
+  (config) => {
     const token = localStorage.getItem('user_token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
   },
-  error => {
+  (error) => {
     return Promise.reject(error);
   }
 );

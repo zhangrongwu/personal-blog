@@ -1,17 +1,30 @@
 {
-  "name": "personal-blog-workers",
+  "name": "personal-blog-worker",
   "version": "1.0.0",
-  "private": true,
+  "description": "Personal Blog Cloudflare Worker",
+  "main": "src/index.ts",
   "scripts": {
+    "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "start": "wrangler dev"
+    "build": "node esbuild.config.js"
   },
+  "keywords": [
+    "cloudflare",
+    "worker",
+    "blog"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
   "dependencies": {
-    "@cloudflare/workers-types": "^4.20231121.0",
-    "jose": "^5.2.0"
+    "hono": "^3.7.2",
+    "jose": "^5.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
-    "wrangler": "^3.19.0",
-    "typescript": "^5.3.3"
+    "@cloudflare/workers-types": "^4.20231121.0",
+    "esbuild": "^0.19.5",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.19.0"
   }
 }

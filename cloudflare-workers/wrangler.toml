@@ -1,4 +1,4 @@
-name = "personal-blog-workers"
+name = "personal-blog-worker"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
@@ -7,7 +7,7 @@ BLOG_TITLE = "我的个人博客"
 JWT_SECRET = "your-256-bit-secret-key-for-jwt"  # 请替换为安全的随机密钥
 
 [[d1_databases]]
-binding = "DB"
+binding = "DB" # Use this name in your Worker
 database_name = "personal-blog-db"
 database_id = "cb89ea0b-22d5-400c-991b-261b73de07cd"
 
@@ -15,3 +15,15 @@ database_id = "cb89ea0b-22d5-400c-991b-261b73de07cd"
 # [[r2_buckets]]
 # binding = "BLOG_BUCKET"
 # bucket_name = "personal-blog-bucket"
+
+[build]
+command = "npm run build"
+
+[build.upload]
+format = "service-worker"
+
+[dev]
+port = 8787
+
+[env.production]
+workers_dev = false

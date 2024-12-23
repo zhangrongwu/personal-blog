@@ -193,24 +193,26 @@ const renderedContent = ref('');
 // 获取博客文章详情
 const fetchBlogPost = async () => {
   try {
-    const postId = route.params.id;
+    const postId = route.params.id as string;
+    console.log('Fetching post with ID:', postId);  
 
     const response = await apiClient.get(`/posts/${postId}`);
 
     if (response.data.success) {
       post.value = response.data.post;
-      
-      // 渲染 Markdown
-      renderedContent.value = marked.parse(response.data.post.content);
-      
-      loading.value = false;
+      // 渲染 Markdown 内容
+      renderedContent.value = marked(post.value.content);
+    } else {
+      error.value = '文章加载失败';
+      console.error('文章加载失败:', response.data);
     }
-  } catch (err: any) {
-    error.value = err.message || '获取博客文章失败';
+  } catch (err) {
+    console.error('获取博客文章失败:', err);
+    error.value = '获取博客文章失败';
+  } finally {
     loading.value = false;
-    router.push('/blog');
   }
-};
+}
 
 const comments = ref<Comment[]>([]);
 const newComment = ref('');

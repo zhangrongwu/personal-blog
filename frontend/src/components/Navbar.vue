@@ -247,9 +247,10 @@ const router = useRouter();
 
 // 导航菜单项
 const menuItems = [
-  { name: '首页', path: '/' },
-  { name: '博客', path: '/blog' },
-  { name: '归档', path: '/archives' }
+  { path: '/', name: '首页' },
+  { path: '/blog', name: '博客' },
+  { path: '/archives', name: '归档' },
+  { path: '/about', name: '关于' }
 ];
 
 // 移动端菜单状态

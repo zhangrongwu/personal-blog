@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8787';
+const API_BASE_URL = 'https://personal-blog-workers.zhangrongwuios-c13.workers.dev/api';
 
 export const authService = {
   async register(username: string, email: string, password: string) {
@@ -45,7 +45,8 @@ export const authService = {
 
 // 创建 axios 实例，自动添加 token
 export const apiClient = axios.create({
-  baseURL: API_BASE_URL
+  baseURL: API_BASE_URL,
+  timeout: 10000  // 增加超时时间
 });
 
 // 请求拦截器
@@ -55,17 +56,23 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
+    console.log('Request config:', config);  // 添加日志
     return config;
   },
   (error) => {
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
 
 // 响应拦截器
 apiClient.interceptors.response.use(
-  response => response,
+  response => {
+    console.log('Response:', response);  // 添加日志
+    return response;
+  },
   error => {
+    console.error('Response error:', error);
     if (error.response && error.response.status === 401) {
       // token 过期，自动登出
       authService.logout();

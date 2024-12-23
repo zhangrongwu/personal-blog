@@ -124,13 +124,20 @@ const archives = computed<YearArchive[]>(() => {
 
 async function fetchArchives() {
   try {
-    const response = await apiClient.get('/archives');
+    const response = await apiClient.get('/posts/archives');
+    
+    console.log('获取归档响应:', response);  // 添加日志
     
     if (response.data.success) {
       rawArchives.value = response.data.archives;
+    } else {
+      console.error('获取归档失败:', response.data);
+      throw new Error(response.data.message || '获取归档失败');
     }
   } catch (error) {
     console.error('获取文章归档失败', error);
+    // 可以在这里添加用户友好的错误提示
+    alert('无法获取文章归档，请稍后重试');
   } finally {
     loading.value = false;
   }

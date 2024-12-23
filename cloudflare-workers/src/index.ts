@@ -11,7 +11,10 @@ import {
   getPostArchives,
   getPostsByYearMonth,
   getPopularPosts,
-  getPopularTags
+  getPopularTags,
+  recordPageView,
+  getWebsiteStats,
+  getPostStats
 } from './blog';
 import {
   createComment,
@@ -41,6 +44,25 @@ app.use('*', cors({
   maxAge: 600,
 }));
 
+// 页面访问记录中间件
+app.use('*', async (c, next) => {
+  const path = c.req.path;
+  const referrer = c.req.header('Referer');
+  const userAgent = c.req.header('User-Agent');
+  const ipAddress = c.req.header('CF-Connecting-IP');
+
+  if (path && !path.startsWith('/api')) {
+    await recordPageView(c.env.DB, {
+      path,
+      referrer,
+      user_agent: userAgent,
+      ip_address: ipAddress
+    });
+  }
+
+  await next();
+});
+
 // 用户认证路由
 app.post('/register', async (c) => {
   const { username, email, password } = await c.req.json();
@@ -54,6 +76,13 @@ app.post('/login', async (c) => {
   const result = await loginUser(c.env.DB, email, password);
   
   return c.json(result, result.success ? 200 : 401);
+});
+
+// 网站统计路由
+app.get('/stats', async (c) => {
+  const result = await getWebsiteStats(c.env.DB);
+  
+  return c.json(result);
 });
 
 // 博客文章路由
@@ -143,6 +172,14 @@ app.get('/posts/:id', async (c) => {
   const result = await getPostById(c.env.DB, postId);
   
   return c.json(result, result.success ? 200 : 404);
+});
+
+// 获取文章统计信息
+app.get('/posts/:id/stats', async (c) => {
+  const postId = Number(c.req.param('id'));
+  const result = await getPostStats(c.env.DB, postId);
+  
+  return c.json(result);
 });
 
 app.put('/posts/:id', async (c) => {

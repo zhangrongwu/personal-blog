@@ -428,3 +428,137 @@ export async function getPopularTags(
     };
   }
 }
+
+export async function recordPageView(
+  db: D1Database, 
+  data: {
+    path: string;
+    referrer?: string;
+    user_agent?: string;
+    ip_address?: string;
+  }
+) {
+  try {
+    const query = `
+      INSERT INTO page_views 
+      (path, referrer, user_agent, ip_address, created_at) 
+      VALUES (?, ?, ?, ?, datetime('now'))
+    `;
+
+    await db.prepare(query).bind(
+      data.path,
+      data.referrer || null,
+      data.user_agent || null,
+      data.ip_address || null
+    ).run();
+
+    return { success: true };
+  } catch (error) {
+    return { 
+      success: false, 
+      message: `记录页面访问失败: ${error instanceof Error ? error.message : '未知错误'}` 
+    };
+  }
+}
+
+export async function getWebsiteStats(db: D1Database) {
+  try {
+    // 总访问量
+    const totalViewsQuery = `
+      SELECT COUNT(*) as total_views 
+      FROM page_views
+    `;
+
+    // 今日访问量
+    const todayViewsQuery = `
+      SELECT COUNT(*) as today_views 
+      FROM page_views 
+      WHERE date(created_at) = date('now')
+    `;
+
+    // 文章访问排行
+    const topPostsQuery = `
+      SELECT 
+        path, 
+        COUNT(*) as view_count 
+      FROM page_views 
+      WHERE path LIKE '/blog/%' 
+      GROUP BY path 
+      ORDER BY view_count DESC 
+      LIMIT 10
+    `;
+
+    // 来源统计
+    const referrerStatsQuery = `
+      SELECT 
+        referrer, 
+        COUNT(*) as referrer_count 
+      FROM page_views 
+      WHERE referrer IS NOT NULL 
+      GROUP BY referrer 
+      ORDER BY referrer_count DESC 
+      LIMIT 10
+    `;
+
+    const totalViewsResult = await db.prepare(totalViewsQuery).first();
+    const todayViewsResult = await db.prepare(todayViewsQuery).first();
+    const topPostsResult = await db.prepare(topPostsQuery).all();
+    const referrerStatsResult = await db.prepare(referrerStatsQuery).all();
+
+    return {
+      success: true,
+      stats: {
+        totalViews: totalViewsResult['total_views'],
+        todayViews: todayViewsResult['today_views'],
+        topPosts: topPostsResult.results.map((post: any) => ({
+          path: post.path,
+          viewCount: post.view_count
+        })),
+        referrerStats: referrerStatsResult.results.map((ref: any) => ({
+          referrer: ref.referrer,
+          count: ref.referrer_count
+        }))
+      }
+    };
+  } catch (error) {
+    return { 
+      success: false, 
+      message: `获取网站统计失败: ${error instanceof Error ? error.message : '未知错误'}` 
+    };
+  }
+}
+
+export async function getPostStats(
+  db: D1Database, 
+  postId: number
+) {
+  try {
+    const viewsQuery = `
+      SELECT COUNT(*) as view_count 
+      FROM page_views 
+      WHERE path = ?
+    `;
+
+    const commentsQuery = `
+      SELECT COUNT(*) as comment_count 
+      FROM comments 
+      WHERE post_id = ?
+    `;
+
+    const viewsResult = await db.prepare(viewsQuery).bind(`/blog/${postId}`).first();
+    const commentsResult = await db.prepare(commentsQuery).bind(postId).first();
+
+    return {
+      success: true,
+      stats: {
+        viewCount: viewsResult['view_count'],
+        commentCount: commentsResult['comment_count']
+      }
+    };
+  } catch (error) {
+    return { 
+      success: false, 
+      message: `获取文章统计失败: ${error instanceof Error ? error.message : '未知错误'}` 
+    };
+  }
+}

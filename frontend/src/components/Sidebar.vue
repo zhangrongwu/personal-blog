@@ -1,7 +1,7 @@
 <template>
-  <aside class="w-full lg:w-64 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 space-y-6">
+  <aside class="w-full lg:w-64 space-y-6">
     <!-- 热门文章 -->
-    <div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
       <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white border-b pb-2">
         热门文章
       </h3>
@@ -22,7 +22,7 @@
     </div>
 
     <!-- 热门标签 -->
-    <div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
       <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white border-b pb-2">
         热门标签
       </h3>
@@ -39,7 +39,7 @@
     </div>
 
     <!-- 文章归档 -->
-    <div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
       <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white border-b pb-2">
         文章归档
       </h3>
@@ -64,12 +64,16 @@
         查看所有归档
       </router-link>
     </div>
+
+    <!-- 网站统计 -->
+    <WebsiteStats />
   </aside>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { apiClient } from '@/services/api';
+import WebsiteStats from './WebsiteStats.vue';
 
 interface PopularPost {
   id: number;
